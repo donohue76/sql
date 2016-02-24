@@ -1,0 +1,175 @@
+--Which is the small country with the biggest gnp? Give answers for "small" by area and population
+
+SELECT
+	code,
+	name,
+	gnp,
+	gnp / population AS small_by_pop,
+	gnp / surfacearea AS small_by_surfacearea
+FROM
+	country
+WHERE
+	population >0
+ORDER BY
+  --surface area
+	small_by_surfacearea desc,
+  --population
+	small_by_pop desc
+LIMIT 1
+
+-- What is the sum of surface area of the 10 biggest countries in the world? The 10 smallest?
+
+-- 10 biggest
+SELECT
+	sum(surfacearea)
+FROM ( SELECT
+	name,
+	surfacearea
+FROM
+	country
+ORDER BY surfacearea desc
+LIMIT 10 ) AS sum_of_surfacearea
+
+--10 smallest
+SELECT
+	sum(surfacearea)
+FROM ( SELECT
+	name,
+	surfacearea
+FROM
+	country
+ORDER BY surfacearea asc
+LIMIT 10 ) AS sum_of_surfacearea
+
+
+-- Which languages are spoken in the ten largest (area) countries?
+
+SELECT
+  code,
+  name,
+  language,
+  surfacearea
+FROM
+  country INNER JOIN countrylanguage
+ON country.code=countrylanguage.countrycode
+WHERE isofficial = true
+ORDER BY surfacearea desc
+LIMIT 10
+
+
+-- What is the total city population in countries that speak English? Spanish?
+
+SELECT
+	sum(population)
+FROM ( SELECT
+	name,
+	language,
+	population
+FROM
+	country INNER JOIN countrylanguage
+	ON country.code=countrylanguage.countrycode
+WHERE language = 'English' and isofficial = true )
+AS country_english
+
+SELECT
+	sum(population)
+FROM ( SELECT
+	name,
+	language,
+	population
+FROM
+	country INNER JOIN countrylanguage
+	ON country.code=countrylanguage.countrycode
+WHERE language = 'Spanish' and isofficial = true )
+AS country_spanish
+
+
+-- Are there any countries without an official language?
+
+-- How many couxntries have no cities?
+
+-- Which countries have the 100 biggest cities in the world?
+
+-- What languages are spoken in the countries with the 100 biggest cities in the world?
+
+-- Which countries have the highest proportion of official language speakers? The lowest?
+
+
+--List the countries in africa that have a population smaller than 30,000,000 and a life expectancy of more than 45
+
+SELECT
+  name,
+  population,
+  lifeexpectancy
+FROM country
+WHERE continent = 'Africa' and population < 3e+7 and lifeexpectancy > 45
+ORDER BY lifeexpectancy
+
+--How many countries gained independence after 1910 that are also a republic
+
+SELECT
+  name,
+  indepyear,
+  governmentform
+FROM country
+WHERE indepyear > '1910' and lower(governmentform) = 'republic'
+
+--Which region has the highest ave gnp
+
+SELECT
+	avg(gnp) AS average_gnp,
+	region
+FROM
+	country
+GROUP BY region
+ORDER BY average_gnp des
+
+-- Who is the head of state for the Top 10 highest ave gnp.
+
+SELECT
+	gnp,
+	name,
+	headofstate
+FROM
+	country
+ORDER BY gnp desc
+LIMIT 10
+
+-- What are the forms of government for the top ten countries by surface area?
+
+SELECT
+	name,
+	governmentform,
+	surfacearea
+FROM
+	country
+ORDER BY surfacearea desc
+LIMIT 10
+
+-- Which fifteen countries have the lowest life expectancy?
+
+SELECT
+	name,
+	lifeexpectancy
+FROM
+	country
+ORDER BY lifeexpectancy asc
+LIMIT 15
+
+--Which five countries have the lowest population density?
+
+SELECT
+  name,
+  population / surfacearea AS pop_density
+FROM country
+WHERE population > 0
+ORDER by pop_density asc
+LIMIT 5
+
+--Which countries are in the top 5% in terms of area?
+
+SELECT
+  name,
+  surfacearea
+FROM country
+ORDER BY surfacearea desc

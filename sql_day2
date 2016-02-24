@@ -1,0 +1,289 @@
+-- What languages are spoken in the 20 poorest (GNP/ capita) countries in the world?
+
+WITH poorest20 AS (
+SELECT
+	name,
+	code,
+	gnp/population AS gnp_per_cap
+FROM
+	country
+WHERE
+	population > 0 and gnp > 0
+ORDER BY gnp_per_cap asc
+LIMIT 20 )
+SELECT
+	name,
+	language,
+	gnp_per_cap
+FROM
+	poorest20 p JOIN countrylanguage cl ON p.code=cl.countrycode
+ORDER BY gnp_per_cap asc
+
+--
+-- What are the cities in the countries with no official language?
+
+WITH no_official AS (
+SELECT DISTINCT countrycode from countrylanguage
+
+except
+
+SELECT DISTINCT countrycode
+FROM countrylanguage
+WHERE isofficial = true
+ORDER BY countrycode asc)
+SELECT
+	cit.name,
+	n.countrycode
+FROM
+	no_official n JOIN city cit ON n.countrycode=cit.countrycode
+ORDER BY countrycode asc
+
+--
+-- Which languages are spoken in the ten largest (area) countries?
+WITH ten_largest AS (
+SELECT
+	code,
+	name,
+	surfacearea
+FROM
+  country
+ORDER BY surfacearea desc
+LIMIT 10 )
+SELECT
+	tl.name,
+	cl.language,
+	tl.surfacearea
+FROM ten_largest tl JOIN countrylanguage cl ON tl.code=cl.countrycode
+ORDER BY tl.surfacearea desc
+
+--
+-- What is the total city population in countries where English is an official language? Spanish?
+SELECT
+	sum(city_pop.population)
+FROM ( WITH official_english AS (
+SELECT
+	code,
+	name,
+	language
+FROM
+	country JOIN countrylanguage
+	ON country.code=countrylanguage.countrycode
+WHERE language = 'English' and isofficial = true
+)
+SELECT
+	cit.name,
+	cit.population
+FROM
+	official_english oe JOIN city cit ON oe.code=cit.countrycode )
+AS city_pop
+
+SELECT
+	sum(city_pop.population)
+FROM ( WITH official_english AS (
+SELECT
+	code,
+	name,
+	language
+FROM
+	country JOIN countrylanguage
+	ON country.code=countrylanguage.countrycode
+WHERE language = 'Spanish' and isofficial = true
+)
+SELECT
+	cit.name,
+	cit.population
+FROM
+	official_english oe JOIN city cit ON oe.code=cit.countrycode )
+AS city_pop
+
+--
+-- Are there any countries without an official language?
+
+WITH no_official AS ( SELECT DISTINCT countrycode from countrylanguage
+
+except
+
+SELECT DISTINCT countrycode
+FROM countrylanguage
+WHERE isofficial = true
+ORDER BY countrycode asc )
+SELECT
+  code,
+  name
+FROM no_official no JOIN country c ON no.countrycode=c.code
+ORDER BY name asc
+
+--
+-- How many countries have no cities?
+
+WITH no_cities AS ( SELECT DISTINCT
+	code
+FROM
+	country
+
+EXCEPT
+
+SELECT DISTINCT
+	countrycode
+FROM
+	city )
+SELECT
+	c.code,
+	c.name
+FROM
+	no_cities nc JOIN country c ON nc.code=c.code
+
+--
+-- Which countries have the 100 biggest cities in the world?
+
+WITH biggest_cities AS ( SELECT
+	name,
+	countrycode,
+	population
+FROM
+	city
+ORDER BY population desc
+LIMIT 100 )
+SELECT
+	c.name,
+	bc.name
+FROM
+	biggest_cities bc JOIN country c ON bc.countrycode=c.code
+ORDER BY bc.population desc
+
+--
+-- What languages are spoken in the countries with the 100 biggest cities in the world?
+
+WITH biggest_cities AS ( SELECT
+	name,
+	countrycode,
+	population
+FROM
+	city
+ORDER BY population desc
+LIMIT 100 )
+SELECT
+	c.name,
+	cl.language,
+	bc.name
+FROM
+	biggest_cities bc JOIN country c ON bc.countrycode=c.code JOIN countrylanguage cl ON cl.countrycode=c.code
+ORDER BY bc.population desc
+
+--
+-- Which countries have the highest proportion of official language speakers? The lowest?
+
+SELECT
+	name,
+	language,
+	percentage
+FROM
+	country c JOIN countrylanguage cl ON c.code=cl.countrycode
+WHERE
+	isofficial = true and population > 0
+ORDER BY percentage desc;
+
+SELECT
+	name,
+	language,
+	percentage
+FROM
+	country c JOIN countrylanguage cl ON c.code=cl.countrycode
+WHERE
+	isofficial = true and population > 0
+ORDER BY percentage asc;
+
+-- Which customer placed the orders on the earliest date? What did they order?
+
+WITH earliest as ( SELECT
+	c.first_name as first_name,
+	c.last_name as last_name,
+	r.customer_id as _customer_id,
+	r.rental_id as rental_id,
+	r.rental_date as rental_date,
+	r.inventory_id as inventory_id
+FROM
+	rental r JOIN customer c ON r.customer_id=c.customer_id
+ORDER BY rental_date asc
+LIMIT 1 )
+SELECT
+	first_name,
+	last_name,
+	rental_id,
+	e.inventory_id,
+	title
+FROM earliest e JOIN inventory i ON e.inventory_id=i.inventory_id JOIN film f ON f.film_id=i.film_id
+
+
+--
+-- Which product do we have the most of? Find the order ids and customer names for all orders for that item.
+
+WITH top_inventory AS ( WITH film_titles AS ( SELECT
+	i.inventory_id,
+	i.film_id,
+	f.title as title
+FROM inventory i JOIN film f ON i.film_id=f.film_id )
+SELECT
+	f.film_id as film_id,
+	f.title as title,
+	inventory_id,
+	count (ft.film_id) as film_count
+FROM film_titles ft JOIN film f ON ft.film_id=f.film_id
+GROUP BY f.title, f.film_id, inventory_id
+ORDER BY film_count desc, f.title asc
+LIMIT 1 )
+SELECT
+	r.rental_id,
+	c.first_name,
+	c.last_name,
+	ti.title
+FROM top_inventory ti JOIN rental r ON r.inventory_id=ti.inventory_id JOIN customer c ON c.customer_id=r.customer_id
+
+
+--
+-- What orders have there been from Texas? In June?
+
+WITH orders AS ( SELECT
+	rental_id,
+	c.customer_id as customer_id,
+	c.address_id as address_id
+FROM rental r JOIN customer c ON r.customer_id=c.customer_id )
+SELECT
+	address,
+	city,
+	district
+FROM orders o JOIN address a ON o.address_id=a.address_id JOIN city cit ON cit.city_id=a.city_id
+WHERE district = 'Texas' and EXTRACT(MONTH FROM o.rental_date) = 6
+
+--
+-- How many orders have we had for sci-fi films? From Texas?
+
+WITH sci_fi_films AS ( SELECT
+	f.title as film,
+	cat.name as category,
+	f.film_id as film_id
+FROM
+	film f JOIN film_category fc ON f.film_id=fc.film_id JOIN category cat ON cat.category_id=fc.category_id
+WHERE
+	cat.name = 'Sci-Fi' )
+SELECT
+	sci.film,
+	sci.category,
+	first_name,
+	last_name,
+	address,
+	district
+FROM sci_fi_films sci
+	JOIN inventory i ON sci.film_id=i.film_id
+	JOIN rental r ON r.inventory_id=i.inventory_id
+	JOIN customer cust ON cust.customer_id=r.customer_id
+	JOIN address a ON a.address_id=cust.address_id
+WHERE district = 'Texas'
+
+--
+-- Which actors have not appeared in a Sci-Fi film?
+
+
+
+--
+-- Find all customers who have not ordered a Sci-Fi film.
