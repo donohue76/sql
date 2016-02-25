@@ -1,0 +1,56 @@
+--SQL To Do List Challenge
+--database = todo_database; model/class = List, table=lists
+
+/*Story: As a programmer, I can create a new ToDo record with title and description.*/
+
+def createItem(title, description)
+  l = List.new
+  l.title = title
+  l.description = description
+  l.save
+end
+
+--Story: As a programmer, I can list all ToDo records.
+
+def self.list_all
+  List.all
+end
+
+--Story: As a programmer, I can set a ToDo record to done given the ID of the record
+
+def setDone(id)
+  new_item = List.find(id)
+  new_item.done = true
+  new_item.save
+end
+
+
+--Story: As a programmer, I can list all the records that are done.
+
+select * from lists where done is true;
+
+--Story: As a programmer, I can list all the records that are not done.
+
+select * from lists where done is false;
+
+--Story: As a programmer, I can update the title and description of a ToDo record given the ID of the record.
+
+UPDATE lists
+  SET title = 'different title',
+  description = 'change of the description'
+WHERE id = 2;
+
+
+--Story: As a programmer, I can destroy a ToDo record given the ID of the record.
+
+
+--Story: As a programmer, I can set a ToDo record with a due date.
+
+
+--Story: As a programmer, I can list all the records with a due date.
+
+
+--Story: As a programmer, I can list all the records without a due date.
+
+
+--/*Story: As a programmer, I can add multiple commments to a ToDo record.
